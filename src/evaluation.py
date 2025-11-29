@@ -129,12 +129,12 @@ class ForecastEvaluator:
             predicted: Predicted values
             
         Returns:
-            MAPE value
+            MAPE value (returns NaN if all actual values are zero)
         """
         # Avoid division by zero
         mask = actual != 0
         if not np.any(mask):
-            return 0
+            return np.nan  # Return NaN to indicate undefined MAPE
         
         return np.mean(np.abs((actual[mask] - predicted[mask]) / actual[mask])) * 100
     
@@ -343,6 +343,8 @@ class ForecastEvaluator:
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
         
+        plt.close(fig)  # Close figure to free memory
+        
         return fig
     
     def plot_error_distribution(self, results_df: pd.DataFrame,
@@ -404,6 +406,8 @@ class ForecastEvaluator:
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        
+        plt.close(fig)  # Close figure to free memory
         
         return fig
     

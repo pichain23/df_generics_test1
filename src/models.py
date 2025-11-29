@@ -15,7 +15,9 @@ from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import warnings
 
-warnings.filterwarnings('ignore')
+# Suppress specific warnings from statsmodels and sklearn during model fitting
+warnings.filterwarnings('ignore', category=UserWarning, module='statsmodels')
+warnings.filterwarnings('ignore', category=FutureWarning, module='sklearn')
 
 
 class BaseForecaster:
@@ -122,21 +124,43 @@ class EnsembleForecaster(BaseForecaster):
     Ensemble forecaster combining multiple ML models.
     """
     
-    def __init__(self, models: Optional[List] = None):
+    def __init__(self, models: Optional[List] = None,
+                 rf_n_estimators: int = 100,
+                 rf_max_depth: int = 10,
+                 gb_n_estimators: int = 100,
+                 gb_max_depth: int = 5,
+                 ridge_alpha: float = 1.0,
+                 elasticnet_alpha: float = 0.5,
+                 elasticnet_l1_ratio: float = 0.5,
+                 random_state: int = 42):
         """
         Initialize ensemble forecaster.
         
         Args:
             models: List of models to ensemble
+            rf_n_estimators: Number of trees for Random Forest
+            rf_max_depth: Max depth for Random Forest
+            gb_n_estimators: Number of trees for Gradient Boosting
+            gb_max_depth: Max depth for Gradient Boosting
+            ridge_alpha: Regularization strength for Ridge
+            elasticnet_alpha: Regularization strength for ElasticNet
+            elasticnet_l1_ratio: L1 ratio for ElasticNet
+            random_state: Random seed for reproducibility
         """
         super().__init__(name="Ensemble")
         
         if models is None:
             self.models = [
-                ('rf', RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)),
-                ('gb', GradientBoostingRegressor(n_estimators=100, max_depth=5, random_state=42)),
-                ('ridge', Ridge(alpha=1.0)),
-                ('elasticnet', ElasticNet(alpha=0.5, l1_ratio=0.5, random_state=42))
+                ('rf', RandomForestRegressor(n_estimators=rf_n_estimators, 
+                                             max_depth=rf_max_depth, 
+                                             random_state=random_state)),
+                ('gb', GradientBoostingRegressor(n_estimators=gb_n_estimators, 
+                                                 max_depth=gb_max_depth, 
+                                                 random_state=random_state)),
+                ('ridge', Ridge(alpha=ridge_alpha)),
+                ('elasticnet', ElasticNet(alpha=elasticnet_alpha, 
+                                          l1_ratio=elasticnet_l1_ratio, 
+                                          random_state=random_state))
             ]
         else:
             self.models = models
@@ -591,6 +615,7 @@ class LSTMForecaster:
         self.model = None
         self.scaler = StandardScaler()
         self.is_fitted = False
+        self.target_col_idx = 0  # Track target column index for inverse transform
         
     def _build_model(self, n_features: int) -> None:
         """Build the LSTM model architecture."""
@@ -619,7 +644,7 @@ class LSTMForecaster:
         X, y = [], []
         for i in range(len(data) - self.sequence_length):
             X.append(data[i:(i + self.sequence_length)])
-            y.append(data[i + self.sequence_length])
+            y.append(data[i + self.sequence_length, self.target_col_idx])
         return np.array(X), np.array(y)
     
     def fit(self, df: pd.DataFrame,
@@ -638,6 +663,9 @@ class LSTMForecaster:
         """
         if feature_cols is None:
             feature_cols = [target_col]
+        
+        # Track target column index for proper inverse transform
+        self.target_col_idx = feature_cols.index(target_col) if target_col in feature_cols else 0
         
         # Prepare data
         data = df[feature_cols].values
@@ -684,12 +712,15 @@ class LSTMForecaster:
             
             # Update sequence
             current_seq = np.roll(current_seq, -1, axis=0)
-            current_seq[-1] = pred[0]
+            current_seq[-1, self.target_col_idx] = pred[0, 0]
         
-        # Inverse transform
+        # Inverse transform using target column position
         predictions = np.array(predictions).reshape(-1, 1)
-        predictions = self.scaler.inverse_transform(
-            np.hstack([predictions, np.zeros((len(predictions), self.scaler.n_features_in_ - 1))])
-        )[:, 0]
+        n_features = self.scaler.n_features_in_
+        full_array = np.zeros((len(predictions), n_features))
+        full_array[:, self.target_col_idx] = predictions.flatten()
         
-        return np.maximum(0, predictions)
+        inverse_transformed = self.scaler.inverse_transform(full_array)
+        result = inverse_transformed[:, self.target_col_idx]
+        
+        return np.maximum(0, result)

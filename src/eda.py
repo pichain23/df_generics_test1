@@ -411,6 +411,9 @@ class ExploratoryAnalysis:
         self.erosion_analysis(df)
         print("✓ Erosion analysis")
         
+        # Close all figures to free memory
+        plt.close('all')
+        
         print(f"\nAll visualizations saved to: {self.output_path}")
         
         return stats

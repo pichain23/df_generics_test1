@@ -30,7 +30,9 @@ from src.models import Scenario1Model, Scenario2Model
 from src.evaluation import ForecastEvaluator
 from src.insights import InsightsGenerator
 
-warnings.filterwarnings('ignore')
+# Suppress matplotlib font manager and seaborn deprecation warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='matplotlib')
+warnings.filterwarnings('ignore', category=FutureWarning, module='seaborn')
 
 
 def parse_args():

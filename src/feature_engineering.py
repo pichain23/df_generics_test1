@@ -128,7 +128,7 @@ class FeatureEngineer:
         # Store bucket statistics
         self.erosion_buckets = drug_buckets
         
-        bucket_counts = df_bucketed.groupby('erosion_bucket')['drug_id'].nunique()
+        bucket_counts = df_bucketed.groupby('erosion_bucket', observed=False)['drug_id'].nunique()
         print(f"Erosion bucket distribution:\n{bucket_counts}")
         
         return df_bucketed

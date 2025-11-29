@@ -11,7 +11,8 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from typing import Tuple, Dict, Optional
 import warnings
 
-warnings.filterwarnings('ignore')
+# Suppress specific pandas warnings about chained assignment
+warnings.filterwarnings('ignore', category=pd.errors.SettingWithCopyWarning)
 
 
 class DataPreprocessor:
@@ -62,6 +63,11 @@ class DataPreprocessor:
         Returns:
             Tuple of sample DataFrames
         """
+        import os
+        
+        # Ensure data directory exists
+        os.makedirs(self.data_path, exist_ok=True)
+        
         np.random.seed(42)
         
         # Sample df_volume data

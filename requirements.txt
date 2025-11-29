@@ -12,9 +12,6 @@ plotly>=5.10.0
 scikit-learn>=1.1.0
 statsmodels>=0.13.0
 
-# Deep Learning (for LSTM)
-tensorflow>=2.10.0
-
 # Utilities
 tqdm>=4.64.0
 openpyxl>=3.0.10
@@ -22,3 +19,7 @@ openpyxl>=3.0.10
 # Jupyter (optional for notebooks)
 jupyter>=1.0.0
 ipykernel>=6.15.0
+
+# Optional: Deep Learning (for LSTM models only)
+# Uncomment the following line if you want to use LSTM-based forecasting
+# tensorflow>=2.10.0

@@ -18,15 +18,21 @@ class InsightsGenerator:
     Generates business insights from pharmaceutical drug sales analysis.
     """
     
-    def __init__(self, output_path: str = 'outputs/'):
+    # Default sample size for visualization performance optimization
+    DEFAULT_SAMPLE_SIZE = 5000
+    
+    def __init__(self, output_path: str = 'outputs/', 
+                 sample_size: int = DEFAULT_SAMPLE_SIZE):
         """
         Initialize insights generator.
         
         Args:
             output_path: Path to save insights and visualizations
+            sample_size: Maximum sample size for visualizations (for performance)
         """
         self.output_path = output_path
         self.insights = []
+        self.sample_size = sample_size
         os.makedirs(output_path, exist_ok=True)
         
     def identify_high_erosion_drugs(self, df: pd.DataFrame,
@@ -105,7 +111,7 @@ class InsightsGenerator:
                         fmt='none', color='black', capsize=3)
         
         # Box plot over time
-        post_entry_sample = post_entry.sample(min(len(post_entry), 5000))  # Sample for performance
+        post_entry_sample = post_entry.sample(min(len(post_entry), self.sample_size))
         sns.boxplot(data=post_entry_sample, x='therapeutic_area', y='erosion', ax=axes[1])
         axes[1].set_xlabel('Therapeutic Area', fontsize=12)
         axes[1].set_ylabel('Erosion', fontsize=12)
@@ -563,6 +569,9 @@ class InsightsGenerator:
         
         # Generate summary
         self.generate_summary_report(df)
+        
+        # Close all figures to free memory
+        plt.close('all')
         
         print(f"\nAll insights saved to: {self.output_path}")
         
